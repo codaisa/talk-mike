@@ -24,6 +24,8 @@ export default function BasicFace({
   color,
 }: BasicFaceProps) {
   const [scale, setScale] = useState(0.1);
+  const [backgroundImage, setBackgroundImage] =
+    useState<HTMLImageElement | null>(null);
 
   const { audioTrack } = useVoiceAssistant();
   const volume = useTrackVolume(audioTrack);
@@ -36,6 +38,15 @@ export default function BasicFace({
     speed: 0.075,
     isActive: volume > 0,
   });
+
+  // Load background image
+  useEffect(() => {
+    const img = new Image();
+    img.src = "/mike.png";
+    img.onload = () => {
+      setBackgroundImage(img);
+    };
+  }, []);
 
   useEffect(() => {
     function calculateScale() {
@@ -52,9 +63,15 @@ export default function BasicFace({
   useEffect(() => {
     const ctx = canvasRef.current?.getContext("2d")!;
     if (ctx) {
-      renderBasicFace({ ctx, mouthScale, eyeScale, color });
+      renderBasicFace({
+        ctx,
+        mouthScale,
+        eyeScale,
+        color,
+        backgroundImage: backgroundImage || undefined,
+      });
     }
-  }, [canvasRef, eyeScale, mouthScale, color, scale]);
+  }, [canvasRef, eyeScale, mouthScale, color, scale, backgroundImage]);
 
   return (
     <canvas

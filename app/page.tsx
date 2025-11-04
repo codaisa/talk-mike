@@ -97,77 +97,80 @@ function PageContent() {
   return (
     <RoomContext.Provider value={roomInstance}>
       <RoomAudioRenderer />
-      <div className="flex flex-col h-screen w-screen bg-gradient-to-br from-slate-900  to-slate-800 ">
-        <Header roomId={room} showShareButton={true} />
 
-        <motion.div
-          layout
-          className="flex flex-col h-full w-full items-center justify-center gap-16"
-        >
-          {!isConnected ? (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.3, ease: "easeInOut" }}
-            >
-              <BasicFace canvasRef={faceCanvasRef!} color="#a142f4" />
-            </motion.div>
-          ) : (
-            <MyVideoConference />
-          )}
+      <div className="absolute top-0 z-[-2] h-screen w-screen bg-neutral-950 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.3),rgba(255,255,255,0))]">
+        <div className="flex flex-col h-screen w-screen ">
+          <Header roomId={room} showShareButton={true} />
 
-          <section className="flex items-center gap-2">
-            <AnimatePresence>
-              {isConnected && (
-                <motion.nav
-                  className={cn("actions-nav", { disabled: !isConnected })}
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.3, ease: "easeInOut" }}
-                >
-                  <button
-                    className={cn("action-button mic-button")}
-                    onClick={toggleMicrophone}
-                  >
-                    {isMicrophoneEnabled ? (
-                      <Mic size={20} />
-                    ) : (
-                      <MicOff size={20} />
-                    )}
-                  </button>
-                </motion.nav>
-              )}
-            </AnimatePresence>
-
-            <motion.nav
-              className={cn("actions-nav", { disabled: !isConnected })}
-              layout
-            >
-              <button
-                className={cn("action-button connect-toggle", {
-                  isConnected,
-                })}
-                onClick={
-                  isConnected
-                    ? () => {
-                        roomInstance.disconnect();
-                        setIsConnected(false);
-                      }
-                    : handleJoinRoom
-                }
+          <motion.div
+            layout
+            className="flex flex-col h-full w-full items-center justify-center gap-16"
+          >
+            {!isConnected ? (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
               >
-                {isJoining ? (
-                  <Loader2 className="animate-spin" size={20} />
-                ) : isConnected ? (
-                  <Square size={20} />
-                ) : (
-                  <Play size={20} />
+                <BasicFace canvasRef={faceCanvasRef!} color="#a142f4" />
+              </motion.div>
+            ) : (
+              <MyVideoConference />
+            )}
+
+            <section className="flex items-center gap-2">
+              <AnimatePresence>
+                {isConnected && (
+                  <motion.nav
+                    className={cn("actions-nav", { disabled: !isConnected })}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                  >
+                    <button
+                      className={cn("action-button mic-button")}
+                      onClick={toggleMicrophone}
+                    >
+                      {isMicrophoneEnabled ? (
+                        <Mic size={20} />
+                      ) : (
+                        <MicOff size={20} />
+                      )}
+                    </button>
+                  </motion.nav>
                 )}
-              </button>
-            </motion.nav>
-          </section>
-        </motion.div>
+              </AnimatePresence>
+
+              <motion.nav
+                className={cn("actions-nav", { disabled: !isConnected })}
+                layout
+              >
+                <button
+                  className={cn("action-button connect-toggle", {
+                    isConnected,
+                  })}
+                  onClick={
+                    isConnected
+                      ? () => {
+                          roomInstance.disconnect();
+                          setIsConnected(false);
+                        }
+                      : handleJoinRoom
+                  }
+                >
+                  {isJoining ? (
+                    <Loader2 className="animate-spin" size={20} />
+                  ) : isConnected ? (
+                    <Square size={20} />
+                  ) : (
+                    <Play size={20} />
+                  )}
+                </button>
+              </motion.nav>
+            </section>
+          </motion.div>
+        </div>
       </div>
     </RoomContext.Provider>
   );
