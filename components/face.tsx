@@ -7,12 +7,7 @@ import { renderBasicFace } from "./basic-face-render";
 import useHover from "@/hooks/use-hover";
 import useTilt from "@/hooks/use-tilt";
 import useFace from "@/hooks/use-face";
-
-// Minimum volume level that indicates audio output is occurring
-const AUDIO_OUTPUT_DETECTION_THRESHOLD = 0.05;
-
-// Amount of delay between end of audio output and setting talking state to false
-const TALKING_STATE_COOLDOWN_MS = 2000;
+import { useTrackVolume, useVoiceAssistant } from "@livekit/components-react";
 
 type BasicFaceProps = {
   /** The canvas element on which to render the face. */
@@ -30,13 +25,16 @@ export default function BasicFace({
 }: BasicFaceProps) {
   const [scale, setScale] = useState(0.1);
 
+  const { audioTrack } = useVoiceAssistant();
+  const volume = useTrackVolume(audioTrack);
+
   // Face state
   const { eyeScale, mouthScale } = useFace();
   const hoverPosition = useHover();
   const tiltAngle = useTilt({
     maxAngle: 5,
     speed: 0.075,
-    isActive: false,
+    isActive: volume > 0,
   });
 
   useEffect(() => {

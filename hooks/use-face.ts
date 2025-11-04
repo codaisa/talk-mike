@@ -65,8 +65,7 @@ export function useBlink({ speed }: BlinkProps) {
 
 export default function useFace() {
   const {  audioTrack } = useVoiceAssistant();
-  const volume = useTrackVolume(audioTrack) / 5;
-
+  const volume = useTrackVolume(audioTrack) / 3;
 
   const eyeScale = useBlink({ speed: 0.0125 });
   const [mouthScale, setMouthScale] = useState(0);

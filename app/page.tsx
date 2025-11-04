@@ -5,18 +5,34 @@ import {
   ParticipantTile,
   RoomAudioRenderer,
   RoomContext,
-  useParticipantContext,
   useTracks,
 } from "@livekit/components-react";
 import { Room, Track } from "livekit-client";
 import "@livekit/components-styles";
-import { useRef, useState } from "react";
+import { useRef, useState, useMemo, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Loader2, Mic, MicOff, Play, Square } from "lucide-react";
 import Header from "@/components/header";
 import BasicFace from "@/components/face";
+import { AnimatePresence, motion } from "framer-motion";
 
 export default function Page() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-screen w-screen items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800">
+          <Loader2 className="animate-spin text-white" size={48} />
+        </div>
+      }
+    >
+      <PageContent />
+    </Suspense>
+  );
+}
+
+function PageContent() {
+  const searchParams = useSearchParams();
   const faceCanvasRef = useRef<HTMLCanvasElement>(null);
   const [isMicrophoneEnabled, setIsMicrophoneEnabled] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
@@ -26,8 +42,14 @@ export default function Page() {
     return Math.random().toString(36).substring(2, 8);
   }
 
-  const room = generate6DigitHash();
-  const name = "anonymous";
+  const room = useMemo(() => {
+    return searchParams.get("roomId") || generate6DigitHash();
+  }, [searchParams]);
+  const name = generate6DigitHash();
+
+  console.log("ROOM:", room);
+  console.log("USERNAME:", name);
+
   const [roomInstance] = useState(
     () =>
       new Room({
@@ -64,58 +86,88 @@ export default function Page() {
     }
   };
 
+  useEffect(() => {
+    if (isConnected) {
+      if (roomInstance) {
+        toggleMicrophone();
+      }
+    }
+  }, [isConnected]);
+
   return (
     <RoomContext.Provider value={roomInstance}>
       <RoomAudioRenderer />
-      <div className="flex flex-col h-screen w-screen bg-gradient-to-br from-slate-900  to-slate-800">
-        <div className="flex w-full h-full overflow-auto">
-          <Header />
+      <div className="flex flex-col h-screen w-screen bg-gradient-to-br from-slate-900  to-slate-800 ">
+        <Header roomId={room} showShareButton={true} />
 
+        <motion.div
+          layout
+          className="flex flex-col h-full w-full items-center justify-center gap-16"
+        >
           {!isConnected ? (
-            <div className="keynote-companion flex flex-col items-center justify-center h-full">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+            >
               <BasicFace canvasRef={faceCanvasRef!} color="#a142f4" />
-            </div>
+            </motion.div>
           ) : (
             <MyVideoConference />
           )}
 
-          <section className="control-tray">
-            <nav className={cn("actions-nav", { disabled: !isConnected })}>
-              <button
-                className={cn("action-button mic-button")}
-                onClick={toggleMicrophone}
-              >
-                {isMicrophoneEnabled ? <Mic size={20} /> : <MicOff size={20} />}
-              </button>
-            </nav>
-
-            <div className={cn("connection-container", { isConnected })}>
-              <div className="connection-button-container">
-                <button
-                  className={cn("action-button connect-toggle", {
-                    isConnected,
-                  })}
-                  onClick={
-                    isConnected
-                      ? () => {
-                          roomInstance.disconnect();
-                          setIsConnected(false);
-                        }
-                      : handleJoinRoom
-                  }
+          <section className="flex items-center gap-2">
+            <AnimatePresence>
+              {isConnected && (
+                <motion.nav
+                  className={cn("actions-nav", { disabled: !isConnected })}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.3, ease: "easeInOut" }}
                 >
-                  {isJoining ? (
-                    <Loader2 className="animate-spin" size={20} />
-                  ) : isConnected ? (
-                    <Square size={20} />
-                  ) : (
-                    <Play size={20} />
-                  )}
-                </button>
-              </div>
-            </div>
+                  <button
+                    className={cn("action-button mic-button")}
+                    onClick={toggleMicrophone}
+                  >
+                    {isMicrophoneEnabled ? (
+                      <Mic size={20} />
+                    ) : (
+                      <MicOff size={20} />
+                    )}
+                  </button>
+                </motion.nav>
+              )}
+            </AnimatePresence>
+
+            <motion.nav
+              className={cn("actions-nav", { disabled: !isConnected })}
+              layout
+            >
+              <button
+                className={cn("action-button connect-toggle", {
+                  isConnected,
+                })}
+                onClick={
+                  isConnected
+                    ? () => {
+                        roomInstance.disconnect();
+                        setIsConnected(false);
+                      }
+                    : handleJoinRoom
+                }
+              >
+                {isJoining ? (
+                  <Loader2 className="animate-spin" size={20} />
+                ) : isConnected ? (
+                  <Square size={20} />
+                ) : (
+                  <Play size={20} />
+                )}
+              </button>
+            </motion.nav>
           </section>
-        </div>
+        </motion.div>
       </div>
     </RoomContext.Provider>
   );
@@ -142,7 +194,7 @@ function MyVideoConference() {
   return (
     <GridLayout
       tracks={agentTracks}
-      style={{ height: "calc(100vh - var(--lk-control-bar-height))" }}
+      style={{ height: "fit-content", width: "fit-content" }}
     >
       <ParticipantTile>
         <BasicFaceComponent />
@@ -153,20 +205,16 @@ function MyVideoConference() {
 
 function BasicFaceComponent() {
   const faceCanvasRef = useRef<HTMLCanvasElement>(null);
-  const participant = useParticipantContext();
-
-  const isAgent =
-    participant?.identity?.includes("agent") ||
-    participant?.metadata?.includes("agent") ||
-    participant?.name?.toLowerCase().includes("agent");
-
-  if (!isAgent) {
-    return null;
-  }
 
   return (
-    <div className="keynote-companion flex flex-col items-center justify-center h-full">
-      <BasicFace canvasRef={faceCanvasRef!} color="#a142f4" />
-    </div>
+    <AnimatePresence>
+      <motion.div
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        transition={{ duration: 0.3, ease: "easeInOut" }}
+      >
+        <BasicFace canvasRef={faceCanvasRef!} color="#a142f4" />
+      </motion.div>
+    </AnimatePresence>
   );
 }
