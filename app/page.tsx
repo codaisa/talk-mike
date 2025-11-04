@@ -1,27 +1,26 @@
 "use client";
 
 import {
-  ControlBar,
   GridLayout,
   ParticipantTile,
   RoomAudioRenderer,
   RoomContext,
+  useParticipantContext,
   useTracks,
 } from "@livekit/components-react";
 import { Room, Track } from "livekit-client";
 import "@livekit/components-styles";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { cn } from "@/lib/utils";
-import { Mic, MicOff, Play, Square } from "lucide-react";
+import { Loader2, Mic, MicOff, Play, Square } from "lucide-react";
 import Header from "@/components/header";
-import { motion } from "framer-motion";
 import BasicFace from "@/components/face";
 
 export default function Page() {
+  const faceCanvasRef = useRef<HTMLCanvasElement>(null);
   const [isMicrophoneEnabled, setIsMicrophoneEnabled] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
-  const faceCanvasRef = useRef<HTMLCanvasElement>(null);
 
   function generate6DigitHash() {
     return Math.random().toString(36).substring(2, 8);
@@ -72,17 +71,13 @@ export default function Page() {
         <div className="flex w-full h-full overflow-auto">
           <Header />
 
-          <motion.div
-            className="streaming-console "
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            transition={{ duration: 0.3 }}
-          >
+          {!isConnected ? (
             <div className="keynote-companion flex flex-col items-center justify-center h-full">
               <BasicFace canvasRef={faceCanvasRef!} color="#a142f4" />
             </div>
-          </motion.div>
+          ) : (
+            <MyVideoConference />
+          )}
 
           <section className="control-tray">
             <nav className={cn("actions-nav", { disabled: !isConnected })}>
@@ -109,7 +104,13 @@ export default function Page() {
                       : handleJoinRoom
                   }
                 >
-                  {isConnected ? <Square size={20} /> : <Play size={20} />}
+                  {isJoining ? (
+                    <Loader2 className="animate-spin" size={20} />
+                  ) : isConnected ? (
+                    <Square size={20} />
+                  ) : (
+                    <Play size={20} />
+                  )}
                 </button>
               </div>
             </div>
@@ -117,5 +118,55 @@ export default function Page() {
         </div>
       </div>
     </RoomContext.Provider>
+  );
+}
+
+function MyVideoConference() {
+  const tracks = useTracks(
+    [
+      { source: Track.Source.Camera, withPlaceholder: true },
+      { source: Track.Source.ScreenShare, withPlaceholder: false },
+    ],
+    { onlySubscribed: false }
+  );
+
+  const agentTracks = tracks.filter((trackRef) => {
+    const participant = trackRef.participant;
+    return (
+      participant?.identity?.includes("agent") ||
+      participant?.metadata?.includes("agent") ||
+      participant?.name?.toLowerCase().includes("agent")
+    );
+  });
+
+  return (
+    <GridLayout
+      tracks={agentTracks}
+      style={{ height: "calc(100vh - var(--lk-control-bar-height))" }}
+    >
+      <ParticipantTile>
+        <BasicFaceComponent />
+      </ParticipantTile>
+    </GridLayout>
+  );
+}
+
+function BasicFaceComponent() {
+  const faceCanvasRef = useRef<HTMLCanvasElement>(null);
+  const participant = useParticipantContext();
+
+  const isAgent =
+    participant?.identity?.includes("agent") ||
+    participant?.metadata?.includes("agent") ||
+    participant?.name?.toLowerCase().includes("agent");
+
+  if (!isAgent) {
+    return null;
+  }
+
+  return (
+    <div className="keynote-companion flex flex-col items-center justify-center h-full">
+      <BasicFace canvasRef={faceCanvasRef!} color="#a142f4" />
+    </div>
   );
 }

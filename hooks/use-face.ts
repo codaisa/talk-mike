@@ -2,6 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
+import { useTrackVolume, useVoiceAssistant } from "@livekit/components-react";
 import { useEffect, useRef, useState } from "react";
 
 export type FaceResults = {
@@ -63,7 +64,10 @@ export function useBlink({ speed }: BlinkProps) {
 }
 
 export default function useFace() {
-  const volume = 0
+  const {  audioTrack } = useVoiceAssistant();
+  const volume = useTrackVolume(audioTrack) / 5;
+
+
   const eyeScale = useBlink({ speed: 0.0125 });
   const [mouthScale, setMouthScale] = useState(0);
   const [lastMouthUpdate, setLastMouthUpdate] = useState(Date.now());
